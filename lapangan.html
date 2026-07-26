@@ -3,36 +3,111 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Absen Lokasi Karyawan</title>
+  <title>Kirim Lokasi Karyawan</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f4f6f9; }
-    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
-    h2 { color: #007bff; margin-top: 0; }
-    input[type="text"] { width: 90%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
-    button { width: 95%; padding: 14px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; }
-    button:disabled { background: #6c757d; }
-    #status { margin-top: 20px; font-size: 14px; line-height: 1.5; color: #333; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f6f9;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    input {
+      width: 90%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    /* Tampilan khusus saat input terkunci */
+    input:disabled {
+      background-color: #e9ecef;
+      color: #495057;
+      border-color: #ced4da;
+      font-weight: bold;
+    }
+    button {
+      width: 90%;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:disabled {
+      background-color: #6c757d;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      word-break: break-all;
+    }
+    .reset-btn {
+      background: none;
+      border: none;
+      color: #dc3545;
+      font-size: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 15px;
+      width: auto;
+    }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>📍 Absen Lokasi</h2>
-    <p>Kirim koordinat GPS HP Anda ke sistem monitoring.</p>
-    
-    <input type="text" id="nama" placeholder="Masukkan Nama / ID Karyawan" value="Budi">
-    <br>
-    <button id="btnKirim" onclick="kirimLokasiHP()">Kirim Lokasi GPS Saya</button>
+    <h2>Absen Lokasi Karyawan</h2>
+    <p style="color: #666; font-size: 14px;">Pastikan GPS HP Anda sudah aktif.</p>
 
-    <div id="status">Sistem siap. Klik tombol untuk kirim lokasi.</div>
+    <label for="nama" style="display:block; text-align:left; margin-left:5%; font-size:12px; color:#555;">Nama / ID Karyawan:</label>
+    <input type="text" id="nama" placeholder="Masukkan Nama/ID Anda">
+
+    <button id="btnKirim" onclick="kirimLokasiHP()">📍 Kirim Lokasi Saya</button>
+
+    <div id="status"></div>
+
+    <!-- Tombol darurat jika admin mau mengganti nama yang terkunci -->
+    <button id="btnReset" class="reset-btn" onclick="resetNama()" style="display:none;">⚠️ Ganti Nama / Reset ID</button>
   </div>
 
   <script>
     const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
     const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
 
+    // Fungsi untuk mengecek dan mengunci input saat halaman dimuat
+    function periksaDanKunciNama() {
+      const inputNama = document.getElementById('nama');
+      const btnReset = document.getElementById('btnReset');
+      const savedName = localStorage.getItem('karyawan_id');
+
+      if (savedName && savedName.trim() !== "") {
+        inputNama.value = savedName;
+        inputNama.disabled = true; // Kunci input text
+        btnReset.style.display = "inline-block"; // Tampilkan tombol reset/ganti ID
+      }
+    }
+
+    // Jalankan langsung fungsi cek saat script dimuat
+    periksaDanKunciNama();
+    window.addEventListener('DOMContentLoaded', periksaDanKunciNama);
+
     function kirimLokasiHP() {
-      const nama = document.getElementById('nama').value.trim();
+      const inputNama = document.getElementById('nama');
+      const nama = inputNama.value.trim();
       const statusDiv = document.getElementById('status');
       const btn = document.getElementById('btnKirim');
 
@@ -41,6 +116,11 @@
         return;
       }
 
+      // 1. Simpan ke memori lokal HP & Kunci Input
+      localStorage.setItem('karyawan_id', nama);
+      periksaDanKunciNama();
+
+      // 2. Cek fitur Geolocation
       if (!navigator.geolocation) {
         statusDiv.innerHTML = "❌ Browser HP Anda tidak mendukung GPS.";
         return;
@@ -49,7 +129,6 @@
       btn.disabled = true;
       statusDiv.innerHTML = "⏳ Mencari sinyal GPS HP...";
 
-      // Ambil GPS Asli HP
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
@@ -86,13 +165,25 @@
         (error) => {
           btn.disabled = false;
           if (error.code === error.PERMISSION_DENIED) {
-            statusDiv.innerHTML = "❌ <b style='color:red;'>Izin GPS Ditolak!</b><br>Harap aktifkan/izinkan akses lokasi pada browser HP Anda.";
+            statusDiv.innerHTML = "❌ <b style='color:red;'>Izin GPS Ditolak!</b><br>Harap izinkan akses lokasi di HP Anda.";
           } else {
             statusDiv.innerHTML = `❌ Gagal mengambil GPS: ${error.message}`;
           }
         },
-        { enableHighAccuracy: true } // Memaksa akurasi GPS tinggi
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
+    }
+
+    // Fungsi jika Admin/Karyawan benar-benar butuh mengubah ID
+    function resetNama() {
+      if (confirm("Apakah Anda yakin ingin mengganti Nama/ID di HP ini?")) {
+        localStorage.removeItem('karyawan_id');
+        const inputNama = document.getElementById('nama');
+        inputNama.disabled = false;
+        inputNama.value = "";
+        document.getElementById('btnReset').style.display = "none";
+        document.getElementById('status').innerHTML = "ℹ️ Nama berhasil di-reset. Silakan masukkan nama baru.";
+      }
     }
   </script>
 
