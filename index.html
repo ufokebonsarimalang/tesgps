@@ -10,8 +10,9 @@
   
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; }
-    h2 { color: #333; }
-    #map { height: 400px; width: 100%; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    h2 { color: #333; margin-bottom: 5px; }
+    p.subtitle { color: #666; margin-top: 0; margin-bottom: 20px; }
+    #map { height: 420px; width: 100%; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
     th { background-color: #007bff; color: white; }
@@ -23,16 +24,19 @@
 <body>
 
   <h2>Dashboard Monitoring Lokasi Karyawan</h2>
+  <p class="subtitle">Menampilkan posisi terakhir & riwayat lokasi karyawan secara real-time.</p>
+  
   <button class="btn" onclick="muatData()">Refresh Data</button>
 
-  <!-- Peta akan muncul di sini -->
+  <!-- Peta -->
   <div id="map"></div>
 
+  <h3>Riwayat Pengiriman Lokasi</h3>
   <table>
     <thead>
       <tr>
         <th>Waktu Kirim</th>
-        <th>User ID</th>
+        <th>User ID / Nama Karyawan</th>
         <th>Latitude</th>
         <th>Longitude</th>
       </tr>
@@ -59,9 +63,7 @@
 
     async function muatData() {
       const tbody = document.getElementById('tabel-data');
-      tbody.innerHTML = '<tr><td colspan="4">Memuat data...</td></tr>';
-      markersGroup.clearLayers(); // Bersihkan marker peta lama
-
+      
       try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan?select=*&order=created_at.desc`, {
           headers: {
@@ -72,39 +74,51 @@
 
         const data = await response.json();
         tbody.innerHTML = '';
+        markersGroup.clearLayers(); // Hapus marker lama dari peta
 
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
           tbody.innerHTML = '<tr><td colspan="4">Belum ada data masuk.</td></tr>';
           return;
         }
 
         let bounds = [];
+        let karyawanTerakhir = {}; // Object untuk melacak posisi terbaru per user_id
 
         data.forEach(item => {
           const waktu = new Date(item.created_at).toLocaleString('id-ID');
+          const userId = item.user_id || 'Tanpa Nama';
           
-          // Tambah baris ke tabel
+          // 1. Tambah baris ke tabel riwayat (semua data tetap dicatat)
           const row = document.createElement('tr');
           row.innerHTML = `
             <td>${waktu}</td>
-            <td><b>${item.user_id || '-'}</b></td>
+            <td><b>${userId}</b></td>
             <td>${item.latitude}</td>
             <td>${item.longitude}</td>
           `;
           tbody.appendChild(row);
 
-          // Tambah Marker/Pin di Peta jika koordinat valid
-          if (item.latitude && item.longitude) {
-            const marker = L.marker([item.latitude, item.longitude])
-              .bindPopup(`<b>${item.user_id || 'Karyawan'}</b><br>${waktu}`);
-            markersGroup.addLayer(marker);
-            bounds.push([item.latitude, item.longitude]);
+          // 2. Filter hanya posisi TERBARU per karyawan untuk ditampilkan di peta
+          if (item.latitude && item.longitude && !karyawanTerakhir[userId]) {
+            karyawanTerakhir[userId] = item; // Simpan karena data diurutkan dari yang paling baru
           }
         });
 
-        // Fokuskan peta ke posisi semua pin yang ada
+        // 3. Pasang marker posisi terbaru masing-masing karyawan ke peta
+        Object.keys(karyawanTerakhir).forEach(userId => {
+          const pos = karyawanTerakhir[userId];
+          const waktu = new Date(pos.created_at).toLocaleString('id-ID');
+
+          const marker = L.marker([pos.latitude, pos.longitude])
+            .bindPopup(`<b>${userId}</b><br>Posisi Terakhir:<br>${waktu}`);
+          
+          markersGroup.addLayer(marker);
+          bounds.push([pos.latitude, pos.longitude]);
+        });
+
+        // Fokuskan peta ke semua posisi terbaru karyawan
         if (bounds.length > 0) {
-          map.fitBounds(bounds, { padding: [50, 50] });
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
         }
 
       } catch (err) {
@@ -112,12 +126,11 @@
       }
     }
 
-   
-    // Panggil saat pertama kali dibuka
+    // Panggil pertama kali saat dibuka
     muatData();
 
-    // Otomatis refresh data setiap 10 detik (10000 ms)
-    setInterval(muatData, 10000);
+    // Auto-refresh otomatis setiap 5 detik
+    setInterval(muatData, 5000);
   </script>
 
 </body>
