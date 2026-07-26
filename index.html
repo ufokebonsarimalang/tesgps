@@ -12,19 +12,19 @@
     body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; }
     h2 { color: #333; margin-bottom: 5px; }
     p.subtitle { color: #666; margin-top: 0; margin-bottom: 20px; }
-    #map { height: 420px; width: 100%; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+    #map { height: 450px; width: 100%; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+    th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
     th { background-color: #007bff; color: white; }
     tr:nth-child(even) { background-color: #f9f9f9; }
-    .btn { padding: 10px 15px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; margin-bottom: 15px; }
+    .btn { padding: 10px 15px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 6px; font-weight: bold; margin-bottom: 15px; }
     .btn:hover { background: #218838; }
   </style>
 </head>
 <body>
 
   <h2>Dashboard Monitoring Lokasi Karyawan</h2>
-  <p class="subtitle">Menampilkan posisi terakhir & garis rute pergerakan karyawan secara real-time (Hari Ini).</p>
+  <p class="subtitle">Live Tracking rute perjalanan karyawan (Garis rute diperhalus ala navigasi).</p>
   
   <button class="btn" onclick="muatData()">Refresh Data</button>
 
@@ -53,7 +53,6 @@
     const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
     const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
 
-    // Flag untuk mengontrol agar fitBounds HANYA dipanggil sekali saat awal buka
     let isFirstLoad = true;
 
     // Inisialisasi Peta
@@ -64,17 +63,15 @@
 
     let markersGroup = L.layerGroup().addTo(map);
 
-    // Daftar warna dinamis untuk membedakan garis rute tiap karyawan
-    const warnaKaryawan = ['#007bff', '#e83e8c', '#28a745', '#fd7e14', '#6f42c1', '#17a2b8'];
+    // Palet warna cerah ala GoJek / Google Maps
+    const warnaKaryawan = ['#00880C', '#007bff', '#e83e8c', '#fd7e14', '#6f42c1', '#17a2b8'];
 
     async function muatData() {
       const tbody = document.getElementById('tabel-data');
       
       try {
-        // Ambil tanggal hari ini (format YYYY-MM-DD) untuk filter otomatis per hari
         const today = new Date().toISOString().split('T')[0];
 
-        // Ambil data hari ini diurutkan dari waktu LAMA ke BARU
         const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan?select=*&created_at=gte.${today}&order=created_at.asc`, {
           headers: {
             'apikey': SUPABASE_KEY,
@@ -84,7 +81,7 @@
 
         const data = await response.json();
         tbody.innerHTML = '';
-        markersGroup.clearLayers(); // Hapus marker & garis lama dari peta
+        markersGroup.clearLayers();
 
         if (!data || data.length === 0) {
           tbody.innerHTML = '<tr><td colspan="4">Belum ada data masuk untuk hari ini.</td></tr>';
@@ -92,9 +89,8 @@
         }
 
         let bounds = [];
-        let rutePerUser = {}; // Mengelompokkan koordinat berdasarkan user_id
+        let rutePerUser = {};
 
-        // 1. Kelompokkan koordinat per karyawan
         data.forEach(item => {
           const userId = item.user_id || 'Tanpa Nama';
           if (!rutePerUser[userId]) {
@@ -109,7 +105,6 @@
           }
         });
 
-        // 2. Tampilkan di Tabel (Diurutkan dari terbaru)
         const dataReversed = [...data].reverse();
         dataReversed.forEach(item => {
           const waktu = new Date(item.created_at).toLocaleString('id-ID');
@@ -123,7 +118,6 @@
           tbody.appendChild(row);
         });
 
-        // 3. Gambar Garis Rute (Polyline) & Marker Posisi Terakhir
         let indexWarna = 0;
         Object.keys(rutePerUser).forEach(userId => {
           const titikLokasi = rutePerUser[userId];
@@ -134,38 +128,42 @@
 
           const latLngs = titikLokasi.map(t => [t.lat, t.lng]);
 
-          // Gambar garis rute jika titik lebih dari 1
+          // --- GAYA GARIS RUTE ALA GOJEK (DUAL-LAYER) ---
           if (latLngs.length > 1) {
-            const polyline = L.polyline(latLngs, { color: warnaGaris, weight: 4, opacity: 0.7 });
+            // Garis luar (outline putih tebal)
+            const outlinePolyline = L.polyline(latLngs, { 
+              color: '#ffffff', 
+              weight: 8, 
+              opacity: 0.9,
+              lineCap: 'round',
+              lineJoin: 'round'
+            });
+            markersGroup.addLayer(outlinePolyline);
+
+            // Garis utama di atasnya
+            const polyline = L.polyline(latLngs, { 
+              color: warnaGaris, 
+              weight: 5, 
+              opacity: 1.0,
+              lineCap: 'round',
+              lineJoin: 'round'
+            });
             markersGroup.addLayer(polyline);
           }
+          // ---------------------------------------------
 
-          // Pasang Marker HANYA pada posisi TERAKHIR
           const posisiTerakhir = titikLokasi[titikLokasi.length - 1];
           const marker = L.marker([posisiTerakhir.lat, posisiTerakhir.lng])
             .bindPopup(`<b>${userId}</b><br>Jumlah Titik: ${titikLokasi.length}<br>Terakhir Update:<br>${posisiTerakhir.waktu}`);
 
           markersGroup.addLayer(marker);
 
-          // Masukkan koordinat untuk penyesuaian fokus peta awal
           latLngs.forEach(ll => bounds.push(ll));
         });
 
-        // 4. ATUR ZOOM: Hanya auto-zoom PADA SAAT PERTAMA KALI HALAMAN DIBUKA
         if (isFirstLoad && bounds.length > 0) {
           map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-          isFirstLoad = false; // Nonaktifkan agar tidak mereset zoom saat auto-refresh 5 detik
+          isFirstLoad = false;
         }
 
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="4" style="color:red;">Gagal memuat data: ${err.message}</td></tr>`;
-      }
-    }
-
-    // Panggil fungsi utama
-    muatData();
-    setInterval(muatData, 5000); // Auto refresh tiap 5 detik
-  </script>
-
-</body>
-</html>
+      } t
