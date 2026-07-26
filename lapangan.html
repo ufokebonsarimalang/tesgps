@@ -3,92 +3,218 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kirim Lokasi Karyawan</title>
+  <title>TRACKING</title>
+  
+  <!-- Font Google Inter untuk tampilan modern -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f4f6f9;
-      text-align: center;
-    }
-    .card {
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      max-width: 400px;
-      margin: 0 auto;
-    }
-    input {
-      width: 90%;
-      padding: 12px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 16px;
+    * {
       box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
     }
-    input:disabled {
-      background-color: #e9ecef;
-      color: #495057;
-      border-color: #ced4da;
-      font-weight: bold;
+
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #334155;
     }
-    button {
-      width: 90%;
-      padding: 12px;
-      background-color: #007bff;
-      color: white;
+
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 400px;
+      border-radius: 24px;
+      padding: 32px 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      position: relative;
+    }
+
+    .icon-wrapper {
+      width: 64px;
+      height: 64px;
+      background: #eff6ff;
+      color: #2563eb;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 28px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 28px;
+    }
+
+    .input-group {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 15px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      outline: none;
+      transition: all 0.2s ease;
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 500;
+    }
+
+    input[type="text"]:focus {
+      border-color: #2563eb;
+      background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    input[type="text"]:disabled {
+      background: #f1f5f9;
+      color: #64748b;
+      border-color: #cbd5e1;
+      cursor: not-allowed;
+      font-weight: 600;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff;
       border: none;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: bold;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
       cursor: pointer;
-      margin-top: 10px;
+      box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-    button:disabled {
-      background-color: #6c757d;
+
+    .btn-submit:active {
+      transform: scale(0.98);
     }
+
+    .btn-submit:disabled {
+      background: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
     #status {
-      margin-top: 15px;
-      font-size: 14px;
-      word-break: break-all;
+      margin-top: 20px;
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 20px;
     }
-    .reset-btn {
+
+    .badge {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-weight: 500;
+      font-size: 13px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .badge-success { background: #dcfce7; color: #15803d; }
+    .badge-error { background: #fee2e2; color: #b91c1c; }
+    .badge-info { background: #e0f2fe; color: #0369a1; }
+
+    .btn-reset {
       background: none;
       border: none;
-      color: #dc3545;
-      font-size: 13px;
-      text-decoration: underline;
+      color: #ef4444;
+      font-size: 12px;
+      font-weight: 600;
       cursor: pointer;
-      margin-top: 15px;
-      width: auto;
-      display: inline-block;
+      margin-top: 24px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: background 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-reset:hover {
+      background: #fef2f2;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2>Absen Lokasi Karyawan</h2>
-    <p style="color: #666; font-size: 14px;">Pastikan GPS HP Anda sudah aktif.</p>
+    <div class="icon-wrapper">
+      📍
+    </div>
 
-    <label for="nama" style="display:block; text-align:left; margin-left:5%; font-size:12px; color:#555;">Nama / ID Karyawan:</label>
-    <input type="text" id="nama" placeholder="Masukkan Nama/ID Anda">
+    <h2>Absen Lokasi</h2>
+    <p class="subtitle">Kirim koordinat lokasi GPS Anda secara real-time</p>
 
-    <button id="btnKirim" onclick="kirimLokasiHP()">📍 Kirim Lokasi Saya</button>
+    <div class="input-group">
+      <label for="nama">ID / Nama Karyawan</label>
+      <div class="input-wrapper">
+        <input type="text" id="nama" placeholder="Masukkan Nama atau ID Anda">
+      </div>
+    </div>
+
+    <button id="btnKirim" class="btn-submit" onclick="kirimLokasiHP()">
+      <span>Kirim Lokasi Sekarang</span>
+    </button>
 
     <div id="status"></div>
 
-    <!-- Tombol Reset Selalu Siap Di-klik -->
-    <button id="btnReset" class="reset-btn" onclick="resetNamaDenganPIN()" style="display:none;">🔒 Ganti / Reset ID (Perlu PIN)</button>
+    <button id="btnReset" class="btn-reset" onclick="resetNamaDenganPIN()" style="display:none;">
+      🔒 Reset ID Device
+    </button>
   </div>
 
   <script>
     const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
     const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
 
-    // Cek apakah HP ini sudah menyimpan ID sebelumnya
     function periksaDanKunciNama() {
       const inputNama = document.getElementById('nama');
       const btnReset = document.getElementById('btnReset');
@@ -97,14 +223,13 @@
       if (savedName && savedName.trim() !== "") {
         inputNama.value = savedName;
         inputNama.disabled = true;
-        btnReset.style.display = "inline-block"; // Tampilkan tombol reset jika terkunci
+        btnReset.style.display = "inline-flex";
       } else {
         inputNama.disabled = false;
-        btnReset.style.display = "none"; // Sembunyikan jika masih kosong
+        btnReset.style.display = "none";
       }
     }
 
-    // Jalankan pemeriksaan saat halaman selesai dimuat
     document.addEventListener('DOMContentLoaded', periksaDanKunciNama);
 
     function kirimLokasiHP() {
@@ -114,28 +239,27 @@
       const btn = document.getElementById('btnKirim');
 
       if (!nama) {
-        statusDiv.innerHTML = "❌ <b style='color:red;'>Isi Nama/ID terlebih dahulu!</b>";
+        statusDiv.innerHTML = `<span class="badge badge-error">⚠️ Masukkan ID/Nama terlebih dahulu!</span>`;
         return;
       }
 
-      // Kunci nama di localStorage
       localStorage.setItem('karyawan_id', nama);
       periksaDanKunciNama();
 
       if (!navigator.geolocation) {
-        statusDiv.innerHTML = "❌ Browser HP Anda tidak mendukung GPS.";
+        statusDiv.innerHTML = `<span class="badge badge-error">❌ Browser tidak mendukung GPS.</span>`;
         return;
       }
 
       btn.disabled = true;
-      statusDiv.innerHTML = "⏳ Mencari sinyal GPS HP...";
+      statusDiv.innerHTML = `<span class="badge badge-info">⏳ Mengunci sinyal GPS HP...</span>`;
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
 
-          statusDiv.innerHTML = "⏳ Mengirim lokasi ke database...";
+          statusDiv.innerHTML = `<span class="badge badge-info">⏳ Mengirim lokasi ke server...</span>`;
 
           try {
             const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan`, {
@@ -153,12 +277,12 @@
             });
 
             if (response.ok) {
-              statusDiv.innerHTML = `✅ <b style='color:green;'>Berhasil Terkirim!</b><br>Lat: ${lat}<br>Lng: ${lng}`;
+              statusDiv.innerHTML = `<div class="badge badge-success">✅ <b>Berhasil Terkirim!</b><br><small>Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</small></div>`;
             } else {
-              statusDiv.innerHTML = "❌ Gagal menyimpan data ke database.";
+              statusDiv.innerHTML = `<span class="badge badge-error">❌ Gagal menyimpan data ke database.</span>`;
             }
           } catch (err) {
-            statusDiv.innerHTML = `❌ Error: ${err.message}`;
+            statusDiv.innerHTML = `<span class="badge badge-error">❌ Error: ${err.message}</span>`;
           } finally {
             btn.disabled = false;
           }
@@ -166,28 +290,24 @@
         (error) => {
           btn.disabled = false;
           if (error.code === error.PERMISSION_DENIED) {
-            statusDiv.innerHTML = "❌ <b style='color:red;'>Izin GPS Ditolak!</b><br>Harap izinkan akses lokasi di HP Anda.";
+            statusDiv.innerHTML = `<span class="badge badge-error">❌ <b>Izin GPS Ditolak!</b><br>Aktifkan izin lokasi di browser HP Anda.</span>`;
           } else {
-            statusDiv.innerHTML = `❌ Gagal mengambil GPS: ${error.message}`;
+            statusDiv.innerHTML = `<span class="badge badge-error">❌ Gagal GPS: ${error.message}</span>`;
           }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     }
 
-    // FUNGSI UNTUK MENGELUARKAN POPUP PIN DAN MENGECEK KE SUPABASE
     async function resetNamaDenganPIN() {
-      // 1. Munculkan kotak dialog input PIN
       const pinInput = prompt("Masukkan PIN Admin untuk mereset ID di HP ini:");
 
-      // Jika user klik 'Cancel' atau tidak mengisi apapun
       if (pinInput === null || pinInput.trim() === "") return;
 
       const statusDiv = document.getElementById('status');
-      statusDiv.innerHTML = "⏳ Memverifikasi PIN ke server...";
+      statusDiv.innerHTML = `<span class="badge badge-info">⏳ Memverifikasi PIN...</span>`;
 
       try {
-        // 2. Ambil data PIN dari tabel admin_config di Supabase
         const response = await fetch(`${SUPABASE_URL}/rest/v1/admin_config?key_name=eq.admin_pin&select=secret_value`, {
           method: 'GET',
           headers: {
@@ -201,7 +321,6 @@
         if (response.ok && data.length > 0) {
           const pinDatabase = data[0].secret_value;
 
-          // 3. Cocokkan PIN Input dengan PIN di Database
           if (pinInput.trim() === pinDatabase.trim()) {
             localStorage.removeItem('karyawan_id');
             
@@ -210,17 +329,17 @@
             inputNama.value = "";
             document.getElementById('btnReset').style.display = "none";
             
-            statusDiv.innerHTML = "<b style='color:green;'>✅ ID Berhasil di-reset! Silakan masukkan Nama/ID baru.</b>";
-            alert("✅ Akses Diterima! Silakan masukkan ID/Nama baru.");
+            statusDiv.innerHTML = `<span class="badge badge-success">✅ ID Berhasil di-reset!</span>`;
+            alert("✅ Reset Berhasil! Silakan masukkan ID/Nama baru.");
           } else {
-            statusDiv.innerHTML = "<b style='color:red;'>❌ PIN Salah! Akses ditolak.</b>";
-            alert("❌ PIN Salah! Anda tidak memiliki akses untuk mengganti ID.");
+            statusDiv.innerHTML = `<span class="badge badge-error">❌ PIN Salah! Akses ditolak.</span>`;
+            alert("❌ PIN Salah! Anda tidak memiliki akses.");
           }
         } else {
-          statusDiv.innerHTML = "❌ Gagal mengambil data PIN. Pastikan tabel 'admin_config' di Supabase sudah dibuat.";
+          statusDiv.innerHTML = `<span class="badge badge-error">❌ Gagal mengambil data PIN di server.</span>`;
         }
       } catch (err) {
-        statusDiv.innerHTML = `❌ Error: ${err.message}`;
+        statusDiv.innerHTML = `<span class="badge badge-error">❌ Error: ${err.message}</span>`;
       }
     }
   </script>
