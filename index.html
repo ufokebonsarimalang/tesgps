@@ -5,46 +5,200 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Monitoring Lokasi Karyawan</title>
   
+  <!-- Font Google Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <!-- CSS Leaflet Peta -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; }
-    h2 { color: #333; margin-bottom: 5px; }
-    p.subtitle { color: #666; margin-top: 0; margin-bottom: 20px; }
-    #map { height: 450px; width: 100%; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
-    th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
-    th { background-color: #007bff; color: white; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-    .btn { padding: 10px 15px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 6px; font-weight: bold; margin-bottom: 15px; }
-    .btn:hover { background: #218838; }
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body { 
+      margin: 0; 
+      padding: 24px; 
+      background-color: #0f172a; 
+      color: #f8fafc;
+    }
+
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    h2 { 
+      color: #ffffff; 
+      margin: 0 0 4px 0; 
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    p.subtitle { 
+      color: #94a3b8; 
+      margin: 0; 
+      font-size: 14px;
+    }
+
+    #map { 
+      height: 480px; 
+      width: 100%; 
+      border-radius: 16px; 
+      margin-bottom: 24px; 
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      border: 1px solid #1e293b;
+    }
+
+    .btn { 
+      padding: 10px 18px; 
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: white; 
+      border: none; 
+      cursor: pointer; 
+      border-radius: 10px; 
+      font-weight: 600; 
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover { 
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+    }
+
+    .table-container {
+      background: #1e293b;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #334155;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      color: #e2e8f0;
+      font-size: 14px;
+    }
+
+    th, td { 
+      padding: 14px 16px; 
+      border-bottom: 1px solid #334155; 
+      text-align: left; 
+    }
+
+    th { 
+      background-color: #0f172a; 
+      color: #94a3b8; 
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    tr:hover { 
+      background-color: #26334d; 
+    }
+
+    /* =================================================== */
+    /* MODERN LEAFLET POPUP STYLING (MENGGANTI POPUP JADUL) */
+    /* =================================================== */
+    .leaflet-popup-content-wrapper {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-radius: 14px !important;
+      padding: 4px 6px !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .leaflet-popup-tip {
+      background: #ffffff !important;
+    }
+
+    .leaflet-popup-close-button {
+      color: #64748b !important;
+      padding: 8px 12px 0 0 !important;
+      font-size: 16px !important;
+    }
+
+    .leaflet-popup-close-button:hover {
+      color: #0f172a !important;
+    }
+
+    /* Isi Card di dalam Popup */
+    .popup-card {
+      padding: 6px;
+      min-width: 180px;
+    }
+
+    .popup-card .user-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .popup-card .status-tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .tag-start { background: #dcfce7; color: #15803d; }
+    .tag-stop { background: #fef9c3; color: #a16207; }
+    .tag-end { background: #fee2e2; color: #b91c1c; }
+
+    .popup-card .info-row {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
   </style>
 </head>
 <body>
 
-  <h2>Dashboard Monitoring Lokasi Karyawan</h2>
-  <p class="subtitle">Live Tracking rute perjalanan karyawan (Posisi Awal 🟢, Singgah 🟡, & Terakhir 🔴).</p>
-  
-  <button class="btn" onclick="muatData()">Refresh Data</button>
+  <div class="header-container">
+    <div>
+      <h2>Dashboard Live Tracking</h2>
+      <p class="subtitle">Monitoring rute & lokasi karyawan secara rinci real-time</p>
+    </div>
+    <button class="btn" onclick="muatData()">🔄 Refresh Data</button>
+  </div>
 
   <!-- Peta -->
   <div id="map"></div>
 
-  <h3>Riwayat Pengiriman Lokasi Hari Ini</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Waktu Kirim</th>
-        <th>User ID / Nama Karyawan</th>
-        <th>Latitude</th>
-        <th>Longitude</th>
-      </tr>
-    </thead>
-    <tbody id="tabel-data">
-      <tr><td colspan="4">Memuat data...</td></tr>
-    </tbody>
-  </table>
+  <h3 style="color: #ffffff; margin-bottom: 12px; font-size: 16px;">Riwayat Pengiriman Lokasi Hari Ini</h3>
+  
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Waktu Kirim</th>
+          <th>User ID / Nama Karyawan</th>
+          <th>Latitude</th>
+          <th>Longitude</th>
+        </tr>
+      </thead>
+      <tbody id="tabel-data">
+        <tr><td colspan="4" style="text-align: center; color: #94a3b8;">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <!-- JS Leaflet Peta -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -57,14 +211,15 @@
 
     // Inisialisasi Peta
     const map = L.map('map').setView([-2.5489, 118.0149], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+    
+    // Menggunakan Tile Dark/Clean Modern dari CartoDB
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap contributors © CARTO'
     }).addTo(map);
 
     let markersGroup = L.layerGroup().addTo(map);
 
-    // Palet warna cerah ala GoJek / Google Maps untuk membedakan antar karyawan
-    const warnaKaryawan = ['#00880C', '#007bff', '#e83e8c', '#fd7e14', '#6f42c1', '#17a2b8'];
+    const warnaKaryawan = ['#2563eb', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6', '#06b6d4'];
 
     async function muatData() {
       const tbody = document.getElementById('tabel-data');
@@ -84,14 +239,13 @@
         markersGroup.clearLayers();
 
         if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4">Belum ada data masuk untuk hari ini.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Belum ada data masuk untuk hari ini.</td></tr>';
           return;
         }
 
         let bounds = [];
         let rutePerUser = {};
 
-        // 1. Kelompokkan koordinat berdasarkan user_id
         data.forEach(item => {
           const userId = item.user_id || 'Tanpa Nama';
           if (!rutePerUser[userId]) {
@@ -101,26 +255,24 @@
             rutePerUser[userId].push({
               lat: item.latitude,
               lng: item.longitude,
-              waktu: new Date(item.created_at).toLocaleString('id-ID')
+              waktu: new Date(item.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
             });
           }
         });
 
-        // 2. Isi data ke Tabel (Urutan terbaru di atas)
         const dataReversed = [...data].reverse();
         dataReversed.forEach(item => {
           const waktu = new Date(item.created_at).toLocaleString('id-ID');
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>${waktu}</td>
-            <td><b>${item.user_id || 'Tanpa Nama'}</b></td>
+            <td><b>${waktu}</b></td>
+            <td><span style="color:#60a5fa; font-weight:600;">${item.user_id || 'Tanpa Nama'}</span></td>
             <td>${item.latitude}</td>
             <td>${item.longitude}</td>
           `;
           tbody.appendChild(row);
         });
 
-        // 3. Gambar Garis & Marker Titik Perjalanan per Karyawan
         let indexWarna = 0;
         Object.keys(rutePerUser).forEach(userId => {
           const titikLokasi = rutePerUser[userId];
@@ -131,65 +283,56 @@
 
           const latLngs = titikLokasi.map(t => [t.lat, t.lng]);
 
-          // --- GARIS RUTE ALA GOJEK (DUAL-LAYER) ---
+          // Garis Rute Sleek Modern
           if (latLngs.length > 1) {
-            // Layer 1: Outline Putih Tebal
-            const outlinePolyline = L.polyline(latLngs, { 
-              color: '#ffffff', 
-              weight: 8, 
-              opacity: 0.9,
-              lineCap: 'round',
-              lineJoin: 'round'
-            });
+            const outlinePolyline = L.polyline(latLngs, { color: '#ffffff', weight: 6, opacity: 0.8, lineCap: 'round' });
+            const polyline = L.polyline(latLngs, { color: warnaGaris, weight: 4, opacity: 1.0, lineCap: 'round' });
             markersGroup.addLayer(outlinePolyline);
-
-            // Layer 2: Garis Warna Utama
-            const polyline = L.polyline(latLngs, { 
-              color: warnaGaris, 
-              weight: 5, 
-              opacity: 1.0,
-              lineCap: 'round',
-              lineJoin: 'round'
-            });
             markersGroup.addLayer(polyline);
           }
 
-          // --- MARKER AWAL, SINGGAH, & AKHIR ---
+          // MARKER & POPUP MODERN
           titikLokasi.forEach((pos, index) => {
             
-            // A. Titik Awal Keberangkatan (Lingkaran Hijau)
+            // A. Titik Awal (Hijau)
             if (index === 0 && titikLokasi.length > 1) {
               const startMarker = L.circleMarker([pos.lat, pos.lng], {
-                radius: 8,
-                fillColor: "#28a745",
-                color: "#ffffff",
-                weight: 3,
-                opacity: 1,
-                fillOpacity: 1
-              }).bindPopup(`<b>${userId}</b><br>🟢 <b>Titik Awal Berangkat</b><br>Waktu: ${pos.waktu}`);
-              
+                radius: 7, fillColor: "#10b981", color: "#ffffff", weight: 3, opacity: 1, fillOpacity: 1
+              }).bindPopup(`
+                <div class="popup-card">
+                  <div class="user-title">👤 ${userId}</div>
+                  <span class="status-tag tag-start">🟢 Titik Awal Berangkat</span>
+                  <div class="info-row">⏰ Jam: <b>${pos.waktu} WIB</b></div>
+                </div>
+              `);
               markersGroup.addLayer(startMarker);
             } 
             
-            // B. Posisi Terakhir / Terkini Saat Ini (Pin Merah Utama)
+            // B. Posisi Terakhir / Terkini (Merah)
             else if (index === titikLokasi.length - 1) {
               const endMarker = L.marker([pos.lat, pos.lng])
-                .bindPopup(`<b>${userId}</b><br>🔴 <b>Posisi Terakhir</b><br>Total Singgah: ${titikLokasi.length} titik<br>Waktu: ${pos.waktu}`);
-              
+                .bindPopup(`
+                  <div class="popup-card">
+                    <div class="user-title">👤 ${userId}</div>
+                    <span class="status-tag tag-end">🔴 Posisi Terakhir</span>
+                    <div class="info-row">📍 Total Singgah: <b>${titikLokasi.length} titik</b></div>
+                    <div class="info-row">⏰ Update: <b>${pos.waktu} WIB</b></div>
+                  </div>
+                `);
               markersGroup.addLayer(endMarker);
             } 
             
-            // C. Titik Singgah / Berhenti di Tengah Perjalanan (Lingkaran Kuning)
+            // C. Titik Singgah Tengah (Kuning)
             else {
               const stopMarker = L.circleMarker([pos.lat, pos.lng], {
-                radius: 5,
-                fillColor: "#ffc107",
-                color: "#ffffff",
-                weight: 2,
-                opacity: 0.8,
-                fillOpacity: 0.9
-              }).bindPopup(`<b>${userId}</b><br>🟡 <b>Titik Singgah ke-${index + 1}</b><br>Waktu: ${pos.waktu}`);
-              
+                radius: 5, fillColor: "#f59e0b", color: "#ffffff", weight: 2, opacity: 0.9, fillOpacity: 1
+              }).bindPopup(`
+                <div class="popup-card">
+                  <div class="user-title">👤 ${userId}</div>
+                  <span class="status-tag tag-stop">🟡 Singgah ke-${index + 1}</span>
+                  <div class="info-row">⏰ Jam: <b>${pos.waktu} WIB</b></div>
+                </div>
+              `);
               markersGroup.addLayer(stopMarker);
             }
 
@@ -198,18 +341,16 @@
           latLngs.forEach(ll => bounds.push(ll));
         });
 
-        // Auto-zoom hanya saat pertama kali web dibuka
         if (isFirstLoad && bounds.length > 0) {
           map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
           isFirstLoad = false;
         }
 
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="4" style="color:red;">Gagal memuat data: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="color:#ef4444; text-align:center;">Gagal memuat data: ${err.message}</td></tr>`;
       }
     }
 
-    // Jalankan pertama kali dan set auto-refresh 5 detik
     muatData();
     setInterval(muatData, 5000);
   </script>
