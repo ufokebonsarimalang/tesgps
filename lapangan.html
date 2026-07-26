@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TRACKING</title>
+  <title>Absen Lokasi Karyawan</title>
   
-  <!-- Font Google Inter untuk tampilan modern -->
+  <!-- Font Google Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <style>
@@ -78,11 +78,7 @@
       letter-spacing: 0.5px;
     }
 
-    .input-wrapper {
-      position: relative;
-    }
-
-    input[type="text"] {
+    input[type="text"], input[type="password"] {
       width: 100%;
       padding: 14px 16px;
       font-size: 15px;
@@ -95,7 +91,7 @@
       font-weight: 500;
     }
 
-    input[type="text"]:focus {
+    input[type="text"]:focus, input[type="password"]:focus {
       border-color: #2563eb;
       background: #ffffff;
       box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
@@ -121,10 +117,6 @@
       cursor: pointer;
       box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
       transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
     }
 
     .btn-submit:active {
@@ -177,6 +169,112 @@
       background: #fef2f2;
     }
 
+    /* ========================================= */
+    /* CUSTOM MODERN POPUP MODAL UNTUK INPUT PIN */
+    /* ========================================= */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+      z-index: 999;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 340px;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      transform: scale(0.9);
+      transition: all 0.25s ease;
+      text-align: center;
+    }
+
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+
+    .modal-icon {
+      width: 48px;
+      height: 48px;
+      background: #fef2f2;
+      color: #ef4444;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin: 0 auto 14px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn-cancel {
+      flex: 1;
+      padding: 12px;
+      background: #f1f5f9;
+      color: #475569;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .btn-confirm {
+      flex: 1;
+      padding: 12px;
+      background: #ef4444;
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    }
+
+    #modalError {
+      font-size: 12px;
+      color: #ef4444;
+      margin-top: 8px;
+      display: none;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(4px); }
       to { opacity: 1; transform: translateY(0); }
@@ -185,30 +283,44 @@
 </head>
 <body>
 
+  <!-- CARD UTAMA -->
   <div class="card">
-    <div class="icon-wrapper">
-      📍
-    </div>
+    <div class="icon-wrapper">📍</div>
 
     <h2>Absen Lokasi</h2>
     <p class="subtitle">Kirim koordinat lokasi GPS Anda secara real-time</p>
 
     <div class="input-group">
       <label for="nama">ID / Nama Karyawan</label>
-      <div class="input-wrapper">
-        <input type="text" id="nama" placeholder="Masukkan Nama atau ID Anda">
-      </div>
+      <input type="text" id="nama" placeholder="Masukkan Nama atau ID Anda">
     </div>
 
     <button id="btnKirim" class="btn-submit" onclick="kirimLokasiHP()">
-      <span>Kirim Lokasi Sekarang</span>
+      Kirim Lokasi Sekarang
     </button>
 
     <div id="status"></div>
 
-    <button id="btnReset" class="btn-reset" onclick="resetNamaDenganPIN()" style="display:none;">
+    <button id="btnReset" class="btn-reset" onclick="bukaModalPIN()" style="display:none;">
       🔒 Reset ID Device
     </button>
+  </div>
+
+  <!-- POPUP MODAL CUSTOM UNTUK INPUT PIN -->
+  <div class="modal-overlay" id="modalPin">
+    <div class="modal-box">
+      <div class="modal-icon">🔑</div>
+      <div class="modal-title">Reset Device ID</div>
+      <div class="modal-desc">Masukkan PIN Admin untuk membuka kuncian ID di HP ini.</div>
+      
+      <input type="password" id="inputPin" placeholder="Masukkan PIN Admin" style="text-align: center; font-size: 18px; letter-spacing: 4px;">
+      <div id="modalError">PIN Salah!</div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="tutupModalPIN()">Batal</button>
+        <button class="btn-confirm" id="btnProsesPin" onclick="prosesVerifikasiPIN()">Verifikasi</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -299,13 +411,32 @@
       );
     }
 
-    async function resetNamaDenganPIN() {
-      const pinInput = prompt("Masukkan PIN Admin untuk mereset ID di HP ini:");
+    /* FUNGSI KONTROL POPUP MODAL PIN */
+    function bukaModalPIN() {
+      document.getElementById('inputPin').value = '';
+      document.getElementById('modalError').style.display = 'none';
+      document.getElementById('modalPin').classList.add('active');
+      document.getElementById('inputPin').focus();
+    }
 
-      if (pinInput === null || pinInput.trim() === "") return;
+    function tutupModalPIN() {
+      document.getElementById('modalPin').classList.remove('active');
+    }
 
-      const statusDiv = document.getElementById('status');
-      statusDiv.innerHTML = `<span class="badge badge-info">⏳ Memverifikasi PIN...</span>`;
+    /* VERIFIKASI PIN KE SUPABASE VIA MODAL */
+    async function prosesVerifikasiPIN() {
+      const pinInput = document.getElementById('inputPin').value.trim();
+      const modalError = document.getElementById('modalError');
+      const btnProses = document.getElementById('btnProsesPin');
+
+      if (!pinInput) {
+        modalError.innerText = "Masukkan PIN terlebih dahulu!";
+        modalError.style.display = "block";
+        return;
+      }
+
+      btnProses.innerText = "Mengecek...";
+      btnProses.disabled = true;
 
       try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/admin_config?key_name=eq.admin_pin&select=secret_value`, {
@@ -321,7 +452,7 @@
         if (response.ok && data.length > 0) {
           const pinDatabase = data[0].secret_value;
 
-          if (pinInput.trim() === pinDatabase.trim()) {
+          if (pinInput === pinDatabase.trim()) {
             localStorage.removeItem('karyawan_id');
             
             const inputNama = document.getElementById('nama');
@@ -329,17 +460,22 @@
             inputNama.value = "";
             document.getElementById('btnReset').style.display = "none";
             
-            statusDiv.innerHTML = `<span class="badge badge-success">✅ ID Berhasil di-reset!</span>`;
-            alert("✅ Reset Berhasil! Silakan masukkan ID/Nama baru.");
+            tutupModalPIN();
+            document.getElementById('status').innerHTML = `<span class="badge badge-success">✅ ID Device Berhasil Di-reset!</span>`;
           } else {
-            statusDiv.innerHTML = `<span class="badge badge-error">❌ PIN Salah! Akses ditolak.</span>`;
-            alert("❌ PIN Salah! Anda tidak memiliki akses.");
+            modalError.innerText = "❌ PIN Salah! Akses ditolak.";
+            modalError.style.display = "block";
           }
         } else {
-          statusDiv.innerHTML = `<span class="badge badge-error">❌ Gagal mengambil data PIN di server.</span>`;
+          modalError.innerText = "Gagal memuat data PIN server.";
+          modalError.style.display = "block";
         }
       } catch (err) {
-        statusDiv.innerHTML = `<span class="badge badge-error">❌ Error: ${err.message}</span>`;
+        modalError.innerText = `Error: ${err.message}`;
+        modalError.style.display = "block";
+      } finally {
+        btnProses.innerText = "Verifikasi";
+        btnProses.disabled = false;
       }
     }
   </script>
