@@ -112,8 +112,12 @@
       }
     }
 
+   
     // Panggil saat pertama kali dibuka
     muatData();
+
+    // Otomatis refresh data setiap 10 detik (10000 ms)
+    setInterval(muatData, 10000);
   </script>
 
 </body>
