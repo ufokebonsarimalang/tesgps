@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absen Lokasi Karyawan</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f4f6f9; }
+    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+    h2 { color: #007bff; margin-top: 0; }
+    input[type="text"] { width: 90%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+    button { width: 95%; padding: 14px; background: #28a745; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; }
+    button:disabled { background: #6c757d; }
+    #status { margin-top: 20px; font-size: 14px; line-height: 1.5; color: #333; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>📍 Absen Lokasi</h2>
+    <p>Kirim koordinat GPS HP Anda ke sistem monitoring.</p>
+    
+    <input type="text" id="nama" placeholder="Masukkan Nama / ID Karyawan" value="Budi">
+    <br>
+    <button id="btnKirim" onclick="kirimLokasiHP()">Kirim Lokasi GPS Saya</button>
+
+    <div id="status">Sistem siap. Klik tombol untuk kirim lokasi.</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
+
+    function kirimLokasiHP() {
+      const nama = document.getElementById('nama').value.trim();
+      const statusDiv = document.getElementById('status');
+      const btn = document.getElementById('btnKirim');
+
+      if (!nama) {
+        statusDiv.innerHTML = "❌ <b style='color:red;'>Isi Nama/ID terlebih dahulu!</b>";
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        statusDiv.innerHTML = "❌ Browser HP Anda tidak mendukung GPS.";
+        return;
+      }
+
+      btn.disabled = true;
+      statusDiv.innerHTML = "⏳ Mencari sinyal GPS HP...";
+
+      // Ambil GPS Asli HP
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          statusDiv.innerHTML = "⏳ Mengirim lokasi ke database...";
+
+          try {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+              },
+              body: JSON.stringify({
+                user_id: nama,
+                latitude: lat,
+                longitude: lng
+              })
+            });
+
+            if (response.ok) {
+              statusDiv.innerHTML = `✅ <b style='color:green;'>Berhasil Terkirim!</b><br>Lat: ${lat}<br>Lng: ${lng}`;
+            } else {
+              statusDiv.innerHTML = "❌ Gagal menyimpan data ke database.";
+            }
+          } catch (err) {
+            statusDiv.innerHTML = `❌ Error: ${err.message}`;
+          } finally {
+            btn.disabled = false;
+          }
+        },
+        (error) => {
+          btn.disabled = false;
+          if (error.code === error.PERMISSION_DENIED) {
+            statusDiv.innerHTML = "❌ <b style='color:red;'>Izin GPS Ditolak!</b><br>Harap aktifkan/izinkan akses lokasi pada browser HP Anda.";
+          } else {
+            statusDiv.innerHTML = `❌ Gagal mengambil GPS: ${error.message}`;
+          }
+        },
+        { enableHighAccuracy: true } // Memaksa akurasi GPS tinggi
+      );
+    }
+  </script>
+
+</body>
+</html>
