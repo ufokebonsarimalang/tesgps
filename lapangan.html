@@ -28,7 +28,6 @@
       font-size: 16px;
       box-sizing: border-box;
     }
-    /* Tampilan khusus saat input terkunci */
     input:disabled {
       background-color: #e9ecef;
       color: #495057;
@@ -59,11 +58,12 @@
       background: none;
       border: none;
       color: #dc3545;
-      font-size: 12px;
+      font-size: 13px;
       text-decoration: underline;
       cursor: pointer;
       margin-top: 15px;
       width: auto;
+      display: inline-block;
     }
   </style>
 </head>
@@ -80,15 +80,15 @@
 
     <div id="status"></div>
 
-    <!-- Tombol darurat jika admin mau mengganti nama yang terkunci -->
-    <button id="btnReset" class="reset-btn" onclick="resetNama()" style="display:none;">⚠️ Ganti Nama / Reset ID</button>
+    <!-- Tombol Reset Selalu Siap Di-klik -->
+    <button id="btnReset" class="reset-btn" onclick="resetNamaDenganPIN()" style="display:none;">🔒 Ganti / Reset ID (Perlu PIN)</button>
   </div>
 
   <script>
     const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
     const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
 
-    // Fungsi untuk mengecek dan mengunci input saat halaman dimuat
+    // Cek apakah HP ini sudah menyimpan ID sebelumnya
     function periksaDanKunciNama() {
       const inputNama = document.getElementById('nama');
       const btnReset = document.getElementById('btnReset');
@@ -96,14 +96,16 @@
 
       if (savedName && savedName.trim() !== "") {
         inputNama.value = savedName;
-        inputNama.disabled = true; // Kunci input text
-        btnReset.style.display = "inline-block"; // Tampilkan tombol reset/ganti ID
+        inputNama.disabled = true;
+        btnReset.style.display = "inline-block"; // Tampilkan tombol reset jika terkunci
+      } else {
+        inputNama.disabled = false;
+        btnReset.style.display = "none"; // Sembunyikan jika masih kosong
       }
     }
 
-    // Jalankan langsung fungsi cek saat script dimuat
-    periksaDanKunciNama();
-    window.addEventListener('DOMContentLoaded', periksaDanKunciNama);
+    // Jalankan pemeriksaan saat halaman selesai dimuat
+    document.addEventListener('DOMContentLoaded', periksaDanKunciNama);
 
     function kirimLokasiHP() {
       const inputNama = document.getElementById('nama');
@@ -116,11 +118,10 @@
         return;
       }
 
-      // 1. Simpan ke memori lokal HP & Kunci Input
+      // Kunci nama di localStorage
       localStorage.setItem('karyawan_id', nama);
       periksaDanKunciNama();
 
-      // 2. Cek fitur Geolocation
       if (!navigator.geolocation) {
         statusDiv.innerHTML = "❌ Browser HP Anda tidak mendukung GPS.";
         return;
@@ -174,15 +175,52 @@
       );
     }
 
-    // Fungsi jika Admin/Karyawan benar-benar butuh mengubah ID
-    function resetNama() {
-      if (confirm("Apakah Anda yakin ingin mengganti Nama/ID di HP ini?")) {
-        localStorage.removeItem('karyawan_id');
-        const inputNama = document.getElementById('nama');
-        inputNama.disabled = false;
-        inputNama.value = "";
-        document.getElementById('btnReset').style.display = "none";
-        document.getElementById('status').innerHTML = "ℹ️ Nama berhasil di-reset. Silakan masukkan nama baru.";
+    // FUNGSI UNTUK MENGELUARKAN POPUP PIN DAN MENGECEK KE SUPABASE
+    async function resetNamaDenganPIN() {
+      // 1. Munculkan kotak dialog input PIN
+      const pinInput = prompt("Masukkan PIN Admin untuk mereset ID di HP ini:");
+
+      // Jika user klik 'Cancel' atau tidak mengisi apapun
+      if (pinInput === null || pinInput.trim() === "") return;
+
+      const statusDiv = document.getElementById('status');
+      statusDiv.innerHTML = "⏳ Memverifikasi PIN ke server...";
+
+      try {
+        // 2. Ambil data PIN dari tabel admin_config di Supabase
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/admin_config?key_name=eq.admin_pin&select=secret_value`, {
+          method: 'GET',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.length > 0) {
+          const pinDatabase = data[0].secret_value;
+
+          // 3. Cocokkan PIN Input dengan PIN di Database
+          if (pinInput.trim() === pinDatabase.trim()) {
+            localStorage.removeItem('karyawan_id');
+            
+            const inputNama = document.getElementById('nama');
+            inputNama.disabled = false;
+            inputNama.value = "";
+            document.getElementById('btnReset').style.display = "none";
+            
+            statusDiv.innerHTML = "<b style='color:green;'>✅ ID Berhasil di-reset! Silakan masukkan Nama/ID baru.</b>";
+            alert("✅ Akses Diterima! Silakan masukkan ID/Nama baru.");
+          } else {
+            statusDiv.innerHTML = "<b style='color:red;'>❌ PIN Salah! Akses ditolak.</b>";
+            alert("❌ PIN Salah! Anda tidak memiliki akses untuk mengganti ID.");
+          }
+        } else {
+          statusDiv.innerHTML = "❌ Gagal mengambil data PIN. Pastikan tabel 'admin_config' di Supabase sudah dibuat.";
+        }
+      } catch (err) {
+        statusDiv.innerHTML = `❌ Error: ${err.message}`;
       }
     }
   </script>
