@@ -24,14 +24,14 @@
 <body>
 
   <h2>Dashboard Monitoring Lokasi Karyawan</h2>
-  <p class="subtitle">Menampilkan posisi terakhir & garis rute pergerakan karyawan secara real-time.</p>
+  <p class="subtitle">Menampilkan posisi terakhir & garis rute pergerakan karyawan secara real-time (Hari Ini).</p>
   
   <button class="btn" onclick="muatData()">Refresh Data</button>
 
   <!-- Peta -->
   <div id="map"></div>
 
-  <h3>Riwayat Pengiriman Lokasi</h3>
+  <h3>Riwayat Pengiriman Lokasi Hari Ini</h3>
   <table>
     <thead>
       <tr>
@@ -53,6 +53,9 @@
     const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
     const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
 
+    // Flag untuk mengontrol agar fitBounds HANYA dipanggil sekali saat awal buka
+    let isFirstLoad = true;
+
     // Inisialisasi Peta
     const map = L.map('map').setView([-2.5489, 118.0149], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -68,8 +71,11 @@
       const tbody = document.getElementById('tabel-data');
       
       try {
-        // Ambil data diurutkan dari waktu LAMA ke BARU untuk keperluan pembuatan garis rute
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan?select=*&order=created_at.asc`, {
+        // Ambil tanggal hari ini (format YYYY-MM-DD) untuk filter otomatis per hari
+        const today = new Date().toISOString().split('T')[0];
+
+        // Ambil data hari ini diurutkan dari waktu LAMA ke BARU
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan?select=*&created_at=gte.${today}&order=created_at.asc`, {
           headers: {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -78,10 +84,10 @@
 
         const data = await response.json();
         tbody.innerHTML = '';
-        markersGroup.clearLayers(); // Hapus marker & garis lama
+        markersGroup.clearLayers(); // Hapus marker & garis lama dari peta
 
         if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4">Belum ada data masuk.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4">Belum ada data masuk untuk hari ini.</td></tr>';
           return;
         }
 
@@ -103,7 +109,7 @@
           }
         });
 
-        // 2. Tampilkan di Tabel (Diurutkan dari terbaru untuk kemudahan dibaca)
+        // 2. Tampilkan di Tabel (Diurutkan dari terbaru)
         const dataReversed = [...data].reverse();
         dataReversed.forEach(item => {
           const waktu = new Date(item.created_at).toLocaleString('id-ID');
@@ -117,7 +123,7 @@
           tbody.appendChild(row);
         });
 
-        // 3. Gambar Garis Rute (Polyline) & Marker Posisi Terakhir per Karyawan
+        // 3. Gambar Garis Rute (Polyline) & Marker Posisi Terakhir
         let indexWarna = 0;
         Object.keys(rutePerUser).forEach(userId => {
           const titikLokasi = rutePerUser[userId];
@@ -126,29 +132,29 @@
           const warnaGaris = warnaKaryawan[indexWarna % warnaKaryawan.length];
           indexWarna++;
 
-          // Kumpulkan koordinat [lat, lng] untuk garis
           const latLngs = titikLokasi.map(t => [t.lat, t.lng]);
 
-          // Gambar garis rute jika titik lokasi lebih dari 1
+          // Gambar garis rute jika titik lebih dari 1
           if (latLngs.length > 1) {
             const polyline = L.polyline(latLngs, { color: warnaGaris, weight: 4, opacity: 0.7 });
             markersGroup.addLayer(polyline);
           }
 
-          // Pasang Marker HANYA pada posisi TERAKHIR (paling ujung rute)
+          // Pasang Marker HANYA pada posisi TERAKHIR
           const posisiTerakhir = titikLokasi[titikLokasi.length - 1];
           const marker = L.marker([posisiTerakhir.lat, posisiTerakhir.lng])
             .bindPopup(`<b>${userId}</b><br>Jumlah Titik: ${titikLokasi.length}<br>Terakhir Update:<br>${posisiTerakhir.waktu}`);
 
           markersGroup.addLayer(marker);
 
-          // Masukkan koordinat untuk memfokuskan peta
+          // Masukkan koordinat untuk penyesuaian fokus peta awal
           latLngs.forEach(ll => bounds.push(ll));
         });
 
-        // Pas-kan zoom peta agar seluruh rute terlihat
-        if (bounds.length > 0) {
+        // 4. ATUR ZOOM: Hanya auto-zoom PADA SAAT PERTAMA KALI HALAMAN DIBUKA
+        if (isFirstLoad && bounds.length > 0) {
           map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+          isFirstLoad = false; // Nonaktifkan agar tidak mereset zoom saat auto-refresh 5 detik
         }
 
       } catch (err) {
@@ -158,7 +164,7 @@
 
     // Panggil fungsi utama
     muatData();
-    setInterval(muatData, 5000);
+    setInterval(muatData, 5000); // Auto refresh tiap 5 detik
   </script>
 
 </body>
