@@ -4,14 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Monitoring Lokasi Karyawan</title>
+  
+  <!-- CSS Leaflet Peta -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; }
     h2 { color: #333; }
-    table { width: 100%; border-collapse: collapse; background: white; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    #map { height: 400px; width: 100%; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
     th { background-color: #007bff; color: white; }
     tr:nth-child(even) { background-color: #f9f9f9; }
-    .btn { padding: 10px 15px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    .btn { padding: 10px 15px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; margin-bottom: 15px; }
     .btn:hover { background: #218838; }
   </style>
 </head>
@@ -19,6 +24,9 @@
 
   <h2>Dashboard Monitoring Lokasi Karyawan</h2>
   <button class="btn" onclick="muatData()">Refresh Data</button>
+
+  <!-- Peta akan muncul di sini -->
+  <div id="map"></div>
 
   <table>
     <thead>
@@ -34,13 +42,25 @@
     </tbody>
   </table>
 
+  <!-- JS Leaflet Peta -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <script>
     const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
     const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
 
+    // Inisialisasi Peta (Default ke Indonesia)
+    const map = L.map('map').setView([-2.5489, 118.0149], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markersGroup = L.layerGroup().addTo(map);
+
     async function muatData() {
       const tbody = document.getElementById('tabel-data');
       tbody.innerHTML = '<tr><td colspan="4">Memuat data...</td></tr>';
+      markersGroup.clearLayers(); // Bersihkan marker peta lama
 
       try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan?select=*&order=created_at.desc`, {
@@ -58,10 +78,13 @@
           return;
         }
 
+        let bounds = [];
+
         data.forEach(item => {
-          const row = document.createElement('tr');
           const waktu = new Date(item.created_at).toLocaleString('id-ID');
           
+          // Tambah baris ke tabel
+          const row = document.createElement('tr');
           row.innerHTML = `
             <td>${waktu}</td>
             <td><b>${item.user_id || '-'}</b></td>
@@ -69,13 +92,27 @@
             <td>${item.longitude}</td>
           `;
           tbody.appendChild(row);
+
+          // Tambah Marker/Pin di Peta jika koordinat valid
+          if (item.latitude && item.longitude) {
+            const marker = L.marker([item.latitude, item.longitude])
+              .bindPopup(`<b>${item.user_id || 'Karyawan'}</b><br>${waktu}`);
+            markersGroup.addLayer(marker);
+            bounds.push([item.latitude, item.longitude]);
+          }
         });
+
+        // Fokuskan peta ke posisi semua pin yang ada
+        if (bounds.length > 0) {
+          map.fitBounds(bounds, { padding: [50, 50] });
+        }
+
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="4" style="color:red;">Gagal memuat data: ${err.message}</td></tr>`;
       }
     }
 
-    // Panggil saat pertama kali halaman dibuka
+    // Panggil saat pertama kali dibuka
     muatData();
   </script>
 
