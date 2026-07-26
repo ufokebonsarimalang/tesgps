@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Monitoring Lokasi Karyawan</title>
   
-  <!-- Font Google Inter (Sangat Jernih & Modern) -->
+  <!-- Font Google Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -99,7 +99,7 @@
       margin-top: 6px;
     }
 
-    /* BUTTON STYLING */
+    /* BUTTON STYLING & ANIMATION */
     .btn-refresh { 
       padding: 10px 20px; 
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -119,6 +119,22 @@
     .btn-refresh:hover { 
       transform: translateY(-1px);
       box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-refresh:disabled {
+      opacity: 0.7;
+      cursor: wait;
+      transform: none;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .spinning {
+      display: inline-block;
+      animation: spin 0.8s linear infinite;
     }
 
     /* PETA CONTAINER */
@@ -248,6 +264,15 @@
       color: #475569;
       margin-top: 4px;
     }
+
+    /* KONTROL LAYER MAP (Pilihan jenis peta di kanan atas) */
+    .leaflet-control-layers {
+      border-radius: 10px !important;
+      padding: 6px 10px !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+      color: #0f172a !important;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -260,8 +285,10 @@
         <h2>🗺️ Live Tracking Dashboard</h2>
         <p class="subtitle">Pantau pergerakan & posisi titik karyawan secara real-time hari ini</p>
       </div>
-      <button class="btn-refresh" onclick="muatData()">
-        <span>🔄 Refresh Data</span>
+      <!-- Tombol Refresh Terstruktur dengan ID khusus -->
+      <button id="btnRefresh" class="btn-refresh" onclick="muatData()">
+        <span id="btnIcon">🔄</span>
+        <span id="btnText">Refresh Data</span>
       </button>
     </div>
 
@@ -314,18 +341,51 @@
 
     let isFirstLoad = true;
 
-    // Inisialisasi Peta
+    // 1. Inisialisasi Peta Dasar
     const map = L.map('map').setView([-2.5489, 118.0149], 5);
     
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+    // 2. Opsi Peta Dasar (Layer Switcher)
+    const osmJalan = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    });
+
+    const satelitEsri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18,
+      attribution: 'Tiles © Esri'
+    });
+
+    const cartoVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '© CARTO'
+    });
+
+    // Peta standar yang aktif saat pertama buka
+    osmJalan.addTo(map);
+
+    // Tambahkan Widget Pilihan Layer di Pojok Kanan Atas Peta
+    const baseMaps = {
+      "📍 Jalan & Gang Detail (OSM)": osmJalan,
+      "🛰️ Satelit / Foto Udara": satelitEsri,
+      "🎨 Modern Clean": cartoVoyager
+    };
+    L.control.layers(baseMaps).addTo(map);
+
     let markersGroup = L.layerGroup().addTo(map);
     const warnaKaryawan = ['#2563eb', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6', '#06b6d4'];
 
     async function muatData() {
       const tbody = document.getElementById('tabel-data');
+      const btnRefresh = document.getElementById('btnRefresh');
+      const btnIcon = document.getElementById('btnIcon');
+      const btnText = document.getElementById('btnText');
+
+      // Memberi Respon Visual saat Tombol Diklik
+      if (btnRefresh) {
+        btnRefresh.disabled = true;
+        btnIcon.classList.add('spinning');
+        btnText.innerText = 'Memuat...';
+      }
       
       try {
         const today = new Date().toISOString().split('T')[0];
@@ -336,6 +396,10 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             'Authorization': `Bearer ${SUPABASE_KEY}`
           }
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP Status ${response.status}`);
+        }
 
         const data = await response.json();
         tbody.innerHTML = '';
@@ -351,7 +415,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
         // Update Stat Cards
         document.getElementById('statTitik').innerText = data.length;
-        document.getElementById('statUpdate').innerText = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+        document.getElementById('statUpdate').innerText = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
 
         let bounds = [];
         let rutePerUser = {};
@@ -452,6 +516,15 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="4" style="color:#ef4444; text-align:center; padding: 24px;">Gagal memuat data: ${err.message}</td></tr>`;
+      } finally {
+        // Mengembalikan tombol refresh ke bentuk semula
+        if (btnRefresh) {
+          setTimeout(() => {
+            btnRefresh.disabled = false;
+            btnIcon.classList.remove('spinning');
+            btnText.innerText = 'Refresh Data';
+          }, 400);
+        }
       }
     }
 
