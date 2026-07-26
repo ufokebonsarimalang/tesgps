@@ -24,7 +24,7 @@
 <body>
 
   <h2>Dashboard Monitoring Lokasi Karyawan</h2>
-  <p class="subtitle">Menampilkan posisi terakhir & riwayat lokasi karyawan secara real-time.</p>
+  <p class="subtitle">Menampilkan posisi terakhir & garis rute pergerakan karyawan secara real-time.</p>
   
   <button class="btn" onclick="muatData()">Refresh Data</button>
 
@@ -53,7 +53,7 @@
     const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
     const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
 
-    // Inisialisasi Peta (Default ke Indonesia)
+    // Inisialisasi Peta
     const map = L.map('map').setView([-2.5489, 118.0149], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
@@ -61,11 +61,15 @@
 
     let markersGroup = L.layerGroup().addTo(map);
 
+    // Daftar warna dinamis untuk membedakan garis rute tiap karyawan
+    const warnaKaryawan = ['#007bff', '#e83e8c', '#28a745', '#fd7e14', '#6f42c1', '#17a2b8'];
+
     async function muatData() {
       const tbody = document.getElementById('tabel-data');
       
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan?select=*&order=created_at.desc`, {
+        // Ambil data diurutkan dari waktu LAMA ke BARU untuk keperluan pembuatan garis rute
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan?select=*&order=created_at.asc`, {
           headers: {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -74,7 +78,7 @@
 
         const data = await response.json();
         tbody.innerHTML = '';
-        markersGroup.clearLayers(); // Hapus marker lama dari peta
+        markersGroup.clearLayers(); // Hapus marker & garis lama
 
         if (!data || data.length === 0) {
           tbody.innerHTML = '<tr><td colspan="4">Belum ada data masuk.</td></tr>';
@@ -82,41 +86,67 @@
         }
 
         let bounds = [];
-        let karyawanTerakhir = {}; // Object untuk melacak posisi terbaru per user_id
+        let rutePerUser = {}; // Mengelompokkan koordinat berdasarkan user_id
 
+        // 1. Kelompokkan koordinat per karyawan
         data.forEach(item => {
-          const waktu = new Date(item.created_at).toLocaleString('id-ID');
           const userId = item.user_id || 'Tanpa Nama';
-          
-          // 1. Tambah baris ke tabel riwayat (semua data tetap dicatat)
+          if (!rutePerUser[userId]) {
+            rutePerUser[userId] = [];
+          }
+          if (item.latitude && item.longitude) {
+            rutePerUser[userId].push({
+              lat: item.latitude,
+              lng: item.longitude,
+              waktu: new Date(item.created_at).toLocaleString('id-ID')
+            });
+          }
+        });
+
+        // 2. Tampilkan di Tabel (Diurutkan dari terbaru untuk kemudahan dibaca)
+        const dataReversed = [...data].reverse();
+        dataReversed.forEach(item => {
+          const waktu = new Date(item.created_at).toLocaleString('id-ID');
           const row = document.createElement('tr');
           row.innerHTML = `
             <td>${waktu}</td>
-            <td><b>${userId}</b></td>
+            <td><b>${item.user_id || 'Tanpa Nama'}</b></td>
             <td>${item.latitude}</td>
             <td>${item.longitude}</td>
           `;
           tbody.appendChild(row);
+        });
 
-          // 2. Filter hanya posisi TERBARU per karyawan untuk ditampilkan di peta
-          if (item.latitude && item.longitude && !karyawanTerakhir[userId]) {
-            karyawanTerakhir[userId] = item; // Simpan karena data diurutkan dari yang paling baru
+        // 3. Gambar Garis Rute (Polyline) & Marker Posisi Terakhir per Karyawan
+        let indexWarna = 0;
+        Object.keys(rutePerUser).forEach(userId => {
+          const titikLokasi = rutePerUser[userId];
+          if (titikLokasi.length === 0) return;
+
+          const warnaGaris = warnaKaryawan[indexWarna % warnaKaryawan.length];
+          indexWarna++;
+
+          // Kumpulkan koordinat [lat, lng] untuk garis
+          const latLngs = titikLokasi.map(t => [t.lat, t.lng]);
+
+          // Gambar garis rute jika titik lokasi lebih dari 1
+          if (latLngs.length > 1) {
+            const polyline = L.polyline(latLngs, { color: warnaGaris, weight: 4, opacity: 0.7 });
+            markersGroup.addLayer(polyline);
           }
-        });
 
-        // 3. Pasang marker posisi terbaru masing-masing karyawan ke peta
-        Object.keys(karyawanTerakhir).forEach(userId => {
-          const pos = karyawanTerakhir[userId];
-          const waktu = new Date(pos.created_at).toLocaleString('id-ID');
+          // Pasang Marker HANYA pada posisi TERAKHIR (paling ujung rute)
+          const posisiTerakhir = titikLokasi[titikLokasi.length - 1];
+          const marker = L.marker([posisiTerakhir.lat, posisiTerakhir.lng])
+            .bindPopup(`<b>${userId}</b><br>Jumlah Titik: ${titikLokasi.length}<br>Terakhir Update:<br>${posisiTerakhir.waktu}`);
 
-          const marker = L.marker([pos.latitude, pos.longitude])
-            .bindPopup(`<b>${userId}</b><br>Posisi Terakhir:<br>${waktu}`);
-          
           markersGroup.addLayer(marker);
-          bounds.push([pos.latitude, pos.longitude]);
+
+          // Masukkan koordinat untuk memfokuskan peta
+          latLngs.forEach(ll => bounds.push(ll));
         });
 
-        // Fokuskan peta ke semua posisi terbaru karyawan
+        // Pas-kan zoom peta agar seluruh rute terlihat
         if (bounds.length > 0) {
           map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
         }
@@ -126,10 +156,8 @@
       }
     }
 
-    // Panggil pertama kali saat dibuka
+    // Panggil fungsi utama
     muatData();
-
-    // Auto-refresh otomatis setiap 5 detik
     setInterval(muatData, 5000);
   </script>
 
