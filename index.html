@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Lokasi Karyawan</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; }
+    h2 { color: #333; }
+    table { width: 100%; border-collapse: collapse; background: white; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+    th { background-color: #007bff; color: white; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .btn { padding: 10px 15px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    .btn:hover { background: #218838; }
+  </style>
+</head>
+<body>
+
+  <h2>Dashboard Monitoring Lokasi Karyawan</h2>
+  <button class="btn" onclick="muatData()">Refresh Data</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Waktu Kirim</th>
+        <th>User ID</th>
+        <th>Latitude</th>
+        <th>Longitude</th>
+      </tr>
+    </thead>
+    <tbody id="tabel-data">
+      <tr><td colspan="4">Memuat data...</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
+
+    async function muatData() {
+      const tbody = document.getElementById('tabel-data');
+      tbody.innerHTML = '<tr><td colspan="4">Memuat data...</td></tr>';
+
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan?select=*&order=created_at.desc`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+
+        const data = await response.json();
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4">Belum ada data masuk.</td></tr>';
+          return;
+        }
+
+        data.forEach(item => {
+          const row = document.createElement('tr');
+          const waktu = new Date(item.created_at).toLocaleString('id-ID');
+          
+          row.innerHTML = `
+            <td>${waktu}</td>
+            <td><b>${item.user_id || '-'}</b></td>
+            <td>${item.latitude}</td>
+            <td>${item.longitude}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" style="color:red;">Gagal memuat data: ${err.message}</td></tr>`;
+      }
+    }
+
+    // Panggil saat pertama kali halaman dibuka
+    muatData();
+  </script>
+
+</body>
+</html>
