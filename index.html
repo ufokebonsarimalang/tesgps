@@ -3,58 +3,105 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monitoring Lokasi Karyawan</title>
+  <title>Dashboard Monitoring Lokasi Karyawan</title>
   
-  <!-- Font Google Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Google Inter (Sangat Jernih & Modern) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   
   <!-- CSS Leaflet Peta -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
+    :root {
+      --bg-main: #0f172a;
+      --card-bg: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #3b82f6;
+    }
+
     * {
       box-sizing: border-box;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
     }
 
     body { 
-      margin: 0; 
-      padding: 24px; 
-      background-color: #0f172a; 
-      color: #f8fafc;
+      background-color: var(--bg-main); 
+      color: var(--text-main);
+      padding: 28px 24px;
+      -webkit-font-smoothing: antialiased;
     }
 
+    .dashboard-container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* HEADER DASHBOARD */
     .header-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
     }
 
-    h2 { 
-      color: #ffffff; 
-      margin: 0 0 4px 0; 
+    .title-area h2 { 
+      color: var(--text-main); 
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-area p.subtitle { 
+      color: var(--text-muted); 
+      font-size: 14px;
+      font-weight: 400;
+      margin-top: 4px;
+    }
+
+    /* STATS SUMMARY BAR */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px 20px;
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-card .value {
       font-size: 22px;
       font-weight: 700;
+      color: var(--text-main);
+      margin-top: 6px;
     }
 
-    p.subtitle { 
-      color: #94a3b8; 
-      margin: 0; 
-      font-size: 14px;
-    }
-
-    #map { 
-      height: 480px; 
-      width: 100%; 
-      border-radius: 16px; 
-      margin-bottom: 24px; 
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-      border: 1px solid #1e293b;
-    }
-
-    .btn { 
-      padding: 10px 18px; 
+    /* BUTTON STYLING */
+    .btn-refresh { 
+      padding: 10px 20px; 
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
       color: white; 
       border: none; 
@@ -62,88 +109,125 @@
       border-radius: 10px; 
       font-weight: 600; 
       font-size: 14px;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
       transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .btn:hover { 
+    .btn-refresh:hover { 
       transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+    }
+
+    /* PETA CONTAINER */
+    #map { 
+      height: 500px; 
+      width: 100%; 
+      border-radius: 18px; 
+      margin-bottom: 28px; 
+      box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border-color);
+    }
+
+    /* TABEL DATA */
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .table-container {
-      background: #1e293b;
+      background: var(--card-bg);
       border-radius: 16px;
       overflow: hidden;
-      border: 1px solid #334155;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     }
 
     table { 
       width: 100%; 
       border-collapse: collapse; 
-      color: #e2e8f0;
+      color: #cbd5e1;
       font-size: 14px;
-    }
-
-    th, td { 
-      padding: 14px 16px; 
-      border-bottom: 1px solid #334155; 
-      text-align: left; 
     }
 
     th { 
       background-color: #0f172a; 
-      color: #94a3b8; 
+      color: var(--text-muted); 
       font-weight: 600;
       text-transform: uppercase;
-      font-size: 12px;
-      letter-spacing: 0.5px;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      text-align: left;
     }
 
-    tr:hover { 
+    td { 
+      padding: 14px 16px; 
+      border-bottom: 1px solid #283548; 
+      text-align: left; 
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td { 
       background-color: #26334d; 
     }
 
-    /* =================================================== */
-    /* MODERN LEAFLET POPUP STYLING (MENGGANTI POPUP JADUL) */
-    /* =================================================== */
+    .user-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .coord-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    .time-text {
+      font-weight: 500;
+      color: #f1f5f9;
+    }
+
+    /* POPUP LEAFLET MODERN */
     .leaflet-popup-content-wrapper {
       background: #ffffff !important;
       color: #0f172a !important;
       border-radius: 14px !important;
-      padding: 4px 6px !important;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
+      padding: 6px 8px !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3) !important;
     }
 
     .leaflet-popup-tip {
       background: #ffffff !important;
     }
 
-    .leaflet-popup-close-button {
-      color: #64748b !important;
-      padding: 8px 12px 0 0 !important;
-      font-size: 16px !important;
-    }
-
-    .leaflet-popup-close-button:hover {
-      color: #0f172a !important;
-    }
-
-    /* Isi Card di dalam Popup */
     .popup-card {
-      padding: 6px;
+      padding: 4px;
       min-width: 180px;
+      font-family: 'Inter', sans-serif;
     }
 
     .popup-card .user-title {
       font-size: 15px;
       font-weight: 700;
       color: #0f172a;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      margin-bottom: 6px;
     }
 
     .popup-card .status-tag {
@@ -163,44 +247,65 @@
       font-size: 12px;
       color: #475569;
       margin-top: 4px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
     }
   </style>
 </head>
 <body>
 
-  <div class="header-container">
-    <div>
-      <h2>Dashboard Live Tracking</h2>
-      <p class="subtitle">Monitoring rute & lokasi karyawan secara rinci real-time</p>
+  <div class="dashboard-container">
+    
+    <!-- HEADER -->
+    <div class="header-container">
+      <div class="title-area">
+        <h2>🗺️ Live Tracking Dashboard</h2>
+        <p class="subtitle">Pantau pergerakan & posisi titik karyawan secara real-time hari ini</p>
+      </div>
+      <button class="btn-refresh" onclick="muatData()">
+        <span>🔄 Refresh Data</span>
+      </button>
     </div>
-    <button class="btn" onclick="muatData()">🔄 Refresh Data</button>
+
+    <!-- CARDS STATISTIK -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Karyawan Aktif Hari Ini</div>
+        <div class="value" id="statKaryawan">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total Titik Terkirim</div>
+        <div class="value" id="statTitik">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Pembaruan Terakhir</div>
+        <div class="value" id="statUpdate" style="font-size: 16px; margin-top: 10px;">-</div>
+      </div>
+    </div>
+
+    <!-- PETA MONITORING -->
+    <div id="map"></div>
+
+    <!-- TABEL RIWAYAT -->
+    <div class="section-title">📋 Riwayat Absen & Lokasi Terkini</div>
+    
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Waktu Kirim</th>
+            <th>ID / Nama Karyawan</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+          </tr>
+        </thead>
+        <tbody id="tabel-data">
+          <tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 24px;">Memuat data lokasi...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
-  <!-- Peta -->
-  <div id="map"></div>
-
-  <h3 style="color: #ffffff; margin-bottom: 12px; font-size: 16px;">Riwayat Pengiriman Lokasi Hari Ini</h3>
-  
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Waktu Kirim</th>
-          <th>User ID / Nama Karyawan</th>
-          <th>Latitude</th>
-          <th>Longitude</th>
-        </tr>
-      </thead>
-      <tbody id="tabel-data">
-        <tr><td colspan="4" style="text-align: center; color: #94a3b8;">Memuat data...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- JS Leaflet Peta -->
+  <!-- JS LEAFLET -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
@@ -212,13 +317,12 @@
     // Inisialisasi Peta
     const map = L.map('map').setView([-2.5489, 118.0149], 5);
     
-    // Menggunakan Tile Dark/Clean Modern dari CartoDB
+    // Basemap Modern CartoDB Voyager
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '© OpenStreetMap contributors © CARTO'
     }).addTo(map);
 
     let markersGroup = L.layerGroup().addTo(map);
-
     const warnaKaryawan = ['#2563eb', '#10b981', '#ec4899', '#f59e0b', '#8b5cf6', '#06b6d4'];
 
     async function muatData() {
@@ -239,18 +343,24 @@
         markersGroup.clearLayers();
 
         if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Belum ada data masuk untuk hari ini.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding: 24px;">Belum ada data masuk untuk hari ini.</td></tr>';
+          document.getElementById('statKaryawan').innerText = '0';
+          document.getElementById('statTitik').innerText = '0';
+          document.getElementById('statUpdate').innerText = 'Belum Ada';
           return;
         }
+
+        // Update Stat Cards
+        document.getElementById('statTitik').innerText = data.length;
+        document.getElementById('statUpdate').innerText = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
 
         let bounds = [];
         let rutePerUser = {};
 
         data.forEach(item => {
           const userId = item.user_id || 'Tanpa Nama';
-          if (!rutePerUser[userId]) {
-            rutePerUser[userId] = [];
-          }
+          if (!rutePerUser[userId]) rutePerUser[userId] = [];
+
           if (item.latitude && item.longitude) {
             rutePerUser[userId].push({
               lat: item.latitude,
@@ -260,19 +370,23 @@
           }
         });
 
+        document.getElementById('statKaryawan').innerText = Object.keys(rutePerUser).length;
+
+        // Render Tabel (Urut Terbaru Di Atas)
         const dataReversed = [...data].reverse();
         dataReversed.forEach(item => {
-          const waktu = new Date(item.created_at).toLocaleString('id-ID');
+          const waktu = new Date(item.created_at).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td><b>${waktu}</b></td>
-            <td><span style="color:#60a5fa; font-weight:600;">${item.user_id || 'Tanpa Nama'}</span></td>
-            <td>${item.latitude}</td>
-            <td>${item.longitude}</td>
+            <td><span class="time-text">${waktu} WIB</span></td>
+            <td><span class="user-badge">${item.user_id || 'Tanpa Nama'}</span></td>
+            <td><span class="coord-text">${item.latitude}</span></td>
+            <td><span class="coord-text">${item.longitude}</span></td>
           `;
           tbody.appendChild(row);
         });
 
+        // Render Rute & Marker Peta
         let indexWarna = 0;
         Object.keys(rutePerUser).forEach(userId => {
           const titikLokasi = rutePerUser[userId];
@@ -283,7 +397,6 @@
 
           const latLngs = titikLokasi.map(t => [t.lat, t.lng]);
 
-          // Garis Rute Sleek Modern
           if (latLngs.length > 1) {
             const outlinePolyline = L.polyline(latLngs, { color: '#ffffff', weight: 6, opacity: 0.8, lineCap: 'round' });
             const polyline = L.polyline(latLngs, { color: warnaGaris, weight: 4, opacity: 1.0, lineCap: 'round' });
@@ -291,10 +404,7 @@
             markersGroup.addLayer(polyline);
           }
 
-          // MARKER & POPUP MODERN
           titikLokasi.forEach((pos, index) => {
-            
-            // A. Titik Awal (Hijau)
             if (index === 0 && titikLokasi.length > 1) {
               const startMarker = L.circleMarker([pos.lat, pos.lng], {
                 radius: 7, fillColor: "#10b981", color: "#ffffff", weight: 3, opacity: 1, fillOpacity: 1
@@ -307,8 +417,6 @@
               `);
               markersGroup.addLayer(startMarker);
             } 
-            
-            // B. Posisi Terakhir / Terkini (Merah)
             else if (index === titikLokasi.length - 1) {
               const endMarker = L.marker([pos.lat, pos.lng])
                 .bindPopup(`
@@ -321,8 +429,6 @@
                 `);
               markersGroup.addLayer(endMarker);
             } 
-            
-            // C. Titik Singgah Tengah (Kuning)
             else {
               const stopMarker = L.circleMarker([pos.lat, pos.lng], {
                 radius: 5, fillColor: "#f59e0b", color: "#ffffff", weight: 2, opacity: 0.9, fillOpacity: 1
@@ -335,7 +441,6 @@
               `);
               markersGroup.addLayer(stopMarker);
             }
-
           });
 
           latLngs.forEach(ll => bounds.push(ll));
@@ -347,7 +452,7 @@
         }
 
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="4" style="color:#ef4444; text-align:center;">Gagal memuat data: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="color:#ef4444; text-align:center; padding: 24px;">Gagal memuat data: ${err.message}</td></tr>`;
       }
     }
 
