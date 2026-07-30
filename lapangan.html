@@ -327,6 +327,19 @@
     const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
     const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
 
+    let watchId = null; // Variabel pengontrol pemantau GPS otomatis
+
+    // Mencegah layar HP redup / mati otomatis agar GPS tetap aktif
+    async function aktifkanPencegahLayarMati() {
+      if ('wakeLock' in navigator) {
+        try {
+          await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.error(`Wake Lock error: ${err.message}`);
+        }
+      }
+    }
+
     function periksaDanKunciNama() {
       const inputNama = document.getElementById('nama');
       const btnReset = document.getElementById('btnReset');
@@ -336,19 +349,24 @@
         inputNama.value = savedName;
         inputNama.disabled = true;
         btnReset.style.display = "inline-flex";
+        
+        // Langsung aktifkan kembali live tracking secara otomatis begitu dibuka
+        mulaiAutoSendLokasi(savedName);
       } else {
         inputNama.disabled = false;
         btnReset.style.display = "none";
       }
     }
 
-    document.addEventListener('DOMContentLoaded', periksaDanKunciNama);
+    document.addEventListener('DOMContentLoaded', () => {
+      periksaDanKunciNama();
+      aktifkanPencegahLayarMati();
+    });
 
     function kirimLokasiHP() {
       const inputNama = document.getElementById('nama');
       const nama = inputNama.value.trim();
       const statusDiv = document.getElementById('status');
-      const btn = document.getElementById('btnKirim');
 
       if (!nama) {
         statusDiv.innerHTML = `<span class="badge badge-error">⚠️ Masukkan ID/Nama terlebih dahulu!</span>`;
@@ -357,6 +375,12 @@
 
       localStorage.setItem('karyawan_id', nama);
       periksaDanKunciNama();
+    }
+
+    // --- FUNGSI UTAMA AUTO-SEND (BERPINDAH LOKASI OTOMATIS) ---
+    function mulaiAutoSendLokasi(nama) {
+      const statusDiv = document.getElementById('status');
+      const btn = document.getElementById('btnKirim');
 
       if (!navigator.geolocation) {
         statusDiv.innerHTML = `<span class="badge badge-error">❌ Browser tidak mendukung GPS.</span>`;
@@ -364,14 +388,17 @@
       }
 
       btn.disabled = true;
-      statusDiv.innerHTML = `<span class="badge badge-info">⏳ Mengunci sinyal GPS HP...</span>`;
+      btn.innerText = "Live Tracking Aktif 🟢";
+      statusDiv.innerHTML = `<span class="badge badge-info">🛰️ Memantau perubahan posisi GPS secara otomatis...</span>`;
 
-      navigator.geolocation.getCurrentPosition(
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+
+      watchId = navigator.geolocation.watchPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-
-          statusDiv.innerHTML = `<span class="badge badge-info">⏳ Mengirim lokasi ke server...</span>`;
 
           try {
             const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan`, {
@@ -389,25 +416,27 @@
             });
 
             if (response.ok) {
-              statusDiv.innerHTML = `<div class="badge badge-success">✅ <b>Berhasil Terkirim!</b><br><small>Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</small></div>`;
+              const jamSekarang = new Date().toLocaleTimeString();
+              statusDiv.innerHTML = `<div class="badge badge-success">🟢 <b>Auto-Send Aktif (${jamSekarang})</b><br><small>Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</small></div>`;
             } else {
-              statusDiv.innerHTML = `<span class="badge badge-error">❌ Gagal menyimpan data ke database.</span>`;
+              console.error("Gagal sinkronisasi data GPS otomatis ke server.");
             }
           } catch (err) {
-            statusDiv.innerHTML = `<span class="badge badge-error">❌ Error: ${err.message}</span>`;
-          } finally {
-            btn.disabled = false;
+            console.error("Error auto-send:", err.message);
           }
         },
         (error) => {
-          btn.disabled = false;
           if (error.code === error.PERMISSION_DENIED) {
             statusDiv.innerHTML = `<span class="badge badge-error">❌ <b>Izin GPS Ditolak!</b><br>Aktifkan izin lokasi di browser HP Anda.</span>`;
           } else {
-            statusDiv.innerHTML = `<span class="badge badge-error">❌ Gagal GPS: ${error.message}</span>`;
+            statusDiv.innerHTML = `<span class="badge badge-error">❌ Kendala GPS: ${error.message}</span>`;
           }
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { 
+          enableHighAccuracy: true, 
+          timeout: 15000, 
+          maximumAge: 5000 
+        }
       );
     }
 
@@ -453,6 +482,11 @@
           const pinDatabase = data[0].secret_value;
 
           if (pinInput === pinDatabase.trim()) {
+            if (watchId !== null) {
+              navigator.geolocation.clearWatch(watchId);
+              watchId = null;
+            }
+
             localStorage.removeItem('karyawan_id');
             
             const inputNama = document.getElementById('nama');
@@ -460,6 +494,10 @@
             inputNama.value = "";
             document.getElementById('btnReset').style.display = "none";
             
+            const btnKirim = document.getElementById('btnKirim');
+            btnKirim.disabled = false;
+            btnKirim.innerText = "Kirim Lokasi Sekarang";
+
             tutupModalPIN();
             document.getElementById('status').innerHTML = `<span class="badge badge-success">✅ ID Device Berhasil Di-reset!</span>`;
           } else {
