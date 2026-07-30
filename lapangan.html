@@ -322,14 +322,14 @@
       </div>
     </div>
   </div>
-
-  <script>
+<script>
     const SUPABASE_URL = "https://gjwuxgoyaaedlgmvjfoh.supabase.co";
     const SUPABASE_KEY = "sb_publishable_6fqAKuhYh6qXFPTQi5g3hg_Md9Q7Pjb";
 
-    let watchId = null; // Variabel pengontrol pemantau GPS otomatis
+    let watchId = null; 
+    let terakhirKirimWaktu = 0;
+    const JEDA_WAKTU_KIRIM = 15 * 60 * 1000; // 15 Menit dalam Milidetik (15 * 60 * 1000)
 
-    // Mencegah layar HP redup / mati otomatis agar GPS tetap aktif
     async function aktifkanPencegahLayarMati() {
       if ('wakeLock' in navigator) {
         try {
@@ -350,7 +350,6 @@
         inputNama.disabled = true;
         btnReset.style.display = "inline-flex";
         
-        // Langsung aktifkan kembali live tracking secara otomatis begitu dibuka
         mulaiAutoSendLokasi(savedName);
       } else {
         inputNama.disabled = false;
@@ -377,7 +376,7 @@
       periksaDanKunciNama();
     }
 
-    // --- FUNGSI UTAMA AUTO-SEND (BERPINDAH LOKASI OTOMATIS) ---
+    // --- FUNGSI AUTO-SEND DENGAN PROTEKSI JEDA 15 MENIT ---
     function mulaiAutoSendLokasi(nama) {
       const statusDiv = document.getElementById('status');
       const btn = document.getElementById('btnKirim');
@@ -388,8 +387,8 @@
       }
 
       btn.disabled = true;
-      btn.innerText = "Live Tracking Aktif 🟢";
-      statusDiv.innerHTML = `<span class="badge badge-info">🛰️ Memantau perubahan posisi GPS secara otomatis...</span>`;
+      btn.innerText = "Live Tracking Aktif 🟢 (Jeda 15 Menit)";
+      statusDiv.innerHTML = `<span class="badge badge-info">🛰️ Sistem aktif. Lokasi akan dikirim berkala setiap 15 menit...</span>`;
 
       if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
@@ -399,30 +398,36 @@
         async (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
+          const waktuSekarangMs = new Date().getTime();
 
-          try {
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`
-              },
-              body: JSON.stringify({
-                user_id: nama,
-                latitude: lat,
-                longitude: lng
-              })
-            });
+          // Cek apakah sudah lewat 15 menit dari pengiriman terakhir
+          if (waktuSekarangMs - terakhirKirimWaktu >= JEDA_WAKTU_KIRIM || terakhirKirimWaktu === 0) {
+            terakhirKirimWaktu = waktuSekarangMs; // Perbarui waktu kirim terakhir
 
-            if (response.ok) {
-              const jamSekarang = new Date().toLocaleTimeString();
-              statusDiv.innerHTML = `<div class="badge badge-success">🟢 <b>Auto-Send Aktif (${jamSekarang})</b><br><small>Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</small></div>`;
-            } else {
-              console.error("Gagal sinkronisasi data GPS otomatis ke server.");
+            try {
+              const response = await fetch(`${SUPABASE_URL}/rest/v1/lokasi_karyawan`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': SUPABASE_KEY,
+                  'Authorization': `Bearer ${SUPABASE_KEY}`
+                },
+                body: JSON.stringify({
+                  user_id: nama,
+                  latitude: lat,
+                  longitude: lng
+                })
+              });
+
+              if (response.ok) {
+                const jamSekarang = new Date().toLocaleTimeString();
+                statusDiv.innerHTML = `<div class="badge badge-success">🟢 <b>Berhasil Dikirim (${jamSekarang})</b><br><small>Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}<br>Berikutnya otomatis dalam 15 menit</small></div>`;
+              } else {
+                console.error("Gagal sinkronisasi data GPS otomatis ke server.");
+              }
+            } catch (err) {
+              console.error("Error auto-send:", err.message);
             }
-          } catch (err) {
-            console.error("Error auto-send:", err.message);
           }
         },
         (error) => {
@@ -488,6 +493,7 @@
             }
 
             localStorage.removeItem('karyawan_id');
+            terakhirKirimWaktu = 0;
             
             const inputNama = document.getElementById('nama');
             inputNama.disabled = false;
@@ -517,6 +523,5 @@
       }
     }
   </script>
-
 </body>
 </html>
